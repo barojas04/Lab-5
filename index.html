@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do App</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main class="app">
+    <section class="todo-container">
+      <h1>Lista de Tareas</h1>
+
+      <form id="taskForm" class="task-form">
+        <input
+          type="text"
+          id="taskInput"
+          placeholder="Escribe una tarea..."
+          aria-label="Nueva tarea"
+        >
+        <button type="submit">Agregar</button>
+      </form>
+
+      <p id="errorMessage" class="error-message"></p>
+
+      <section class="task-info">
+        <p>Tareas pendientes: <span id="pendingCount">0</span></p>
+      </section>
+
+      <ul id="taskList" class="task-list"></ul>
+    </section>
+  </main>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
