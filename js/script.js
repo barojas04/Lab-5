@@ -1,28 +1,19 @@
 // Referencias al DOM
-const taskForm = document.getElementById("taskForm");
-const taskInput = document.getElementById("taskInput");
-const taskList = document.getElementById("taskList");
-const pendingCountEl = document.getElementById("pendingCount");
-const completedCountEl = document.getElementById("completedCount");
-const errorMessage = document.getElementById("errorMessage");
-const emptyState = document.getElementById("emptyState");
-const clearCompletedBtn = document.getElementById("clearCompletedBtn");
+const taskForm = document.querySelector("#taskForm");
+const taskInput = document.querySelector("#taskInput");
+const taskList = document.querySelector("#taskList");
+const pendingCountEl = document.querySelector("#pendingCount");
+const completedCountEl = document.querySelector("#completedCount");
+const errorMessage = document.querySelector("#errorMessage");
+const emptyState = document.querySelector("#emptyState");
+const clearCompletedBtn = document.querySelector("#clearCompletedBtn");
 
 // Estado de la aplicación
 let tasks = [];
 
 // Inicialización
 function init() {
-  const storedTasks = localStorage.getItem('tasks');
-  if (storedTasks) {
-    tasks = JSON.parse(storedTasks);
-  }
   renderTasks();
-}
-
-// Guardar en localStorage
-function saveTasks() {
-  localStorage.setItem('tasks', JSON.stringify(tasks));
 }
 
 // Actualizar contadores
@@ -59,7 +50,6 @@ function clearCompleted() {
   
   setTimeout(() => {
     tasks = tasks.filter(task => !task.completed);
-    saveTasks();
     renderTasks();
   }, 300);
 }
@@ -69,24 +59,21 @@ function toggleTask(id) {
   const task = tasks.find(t => t.id === id);
   if (task) {
     task.completed = !task.completed;
-    saveTasks();
     renderTasks();
   }
 }
 
 // Eliminar tarea
 function deleteTask(id) {
-  const taskElement = document.getElementById(`task-${id}`);
+  const taskElement = document.querySelector(`#task-${id}`);
   if (taskElement) {
     taskElement.classList.add('removing');
     setTimeout(() => {
       tasks = tasks.filter(t => t.id !== id);
-      saveTasks();
       renderTasks();
     }, 300); // Esperar a que termine la animación
   } else {
     tasks = tasks.filter(t => t.id !== id);
-    saveTasks();
     renderTasks();
   }
 }
@@ -154,7 +141,6 @@ taskForm.addEventListener("submit", function (e) {
   };
   
   tasks.unshift(newTask); // Añadir al principio
-  saveTasks();
   renderTasks();
   
   taskInput.value = "";
