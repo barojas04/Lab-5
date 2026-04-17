@@ -1,109 +1,172 @@
+// Referencias al DOM
 const taskForm = document.getElementById("taskForm");
 const taskInput = document.getElementById("taskInput");
 const taskList = document.getElementById("taskList");
-const pendingCount = document.getElementById("pendingCount");
+const pendingCountEl = document.getElementById("pendingCount");
+const completedCountEl = document.getElementById("completedCount");
 const errorMessage = document.getElementById("errorMessage");
+const emptyState = document.getElementById("emptyState");
+const clearCompletedBtn = document.getElementById("clearCompletedBtn");
 
-let tareasPendientes = 0;
+// Estado de la aplicación
+let tasks = [];
 
-function actualizarContador() {
-  pendingCount.textContent = tareasPendientes;
+// Inicialización
+function init() {
+  const storedTasks = localStorage.getItem('tasks');
+  if (storedTasks) {
+    tasks = JSON.parse(storedTasks);
+  }
+  renderTasks();
 }
 
-function mostrarError(mensaje) {
-  errorMessage.textContent = mensaje;
+// Guardar en localStorage
+function saveTasks() {
+  localStorage.setItem('tasks', JSON.stringify(tasks));
 }
 
-function limpiarError() {
-  errorMessage.textContent = "";
+// Actualizar contadores
+function updateStats() {
+  const pendingCount = tasks.filter(task => !task.completed).length;
+  const completedCount = tasks.filter(task => task.completed).length;
+  
+  pendingCountEl.textContent = pendingCount;
+  completedCountEl.textContent = completedCount;
+  
+  if (tasks.length === 0) {
+    emptyState.classList.remove("hidden");
+    taskList.style.display = "none";
+  } else {
+    emptyState.classList.add("hidden");
+    taskList.style.display = "flex";
+  }
 }
 
-function crearTarea(textoTarea) {
-  const li = document.createElement("li");
-  li.classList.add("task-item");
+// Mostrar error
+function showError(msg) {
+  errorMessage.textContent = msg;
+  errorMessage.classList.add("show");
+  setTimeout(() => {
+    errorMessage.classList.remove("show");
+  }, 3000);
+}
 
-  const taskContent = document.createElement("div");
-  taskContent.classList.add("task-content");
+// Limpiar completadas
+function clearCompleted() {
+  // Animamos la salida de las completadas
+  const completedItems = document.querySelectorAll('.task-item.completed');
+  completedItems.forEach(item => item.classList.add('removing'));
+  
+  setTimeout(() => {
+    tasks = tasks.filter(task => !task.completed);
+    saveTasks();
+    renderTasks();
+  }, 300);
+}
 
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.setAttribute("aria-label", "Marcar tarea como completada");
+// Toggle estado de tarea
+function toggleTask(id) {
+  const task = tasks.find(t => t.id === id);
+  if (task) {
+    task.completed = !task.completed;
+    saveTasks();
+    renderTasks();
+  }
+}
 
-  const span = document.createElement("span");
-  span.classList.add("task-text");
-  span.textContent = textoTarea;
+// Eliminar tarea
+function deleteTask(id) {
+  const taskElement = document.getElementById(`task-${id}`);
+  if (taskElement) {
+    taskElement.classList.add('removing');
+    setTimeout(() => {
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks();
+      renderTasks();
+    }, 300); // Esperar a que termine la animación
+  } else {
+    tasks = tasks.filter(t => t.id !== id);
+    saveTasks();
+    renderTasks();
+  }
+}
 
-  const taskActions = document.createElement("div");
-  taskActions.classList.add("task-actions");
-
-  const completeBtn = document.createElement("button");
-  completeBtn.textContent = "Completar";
-  completeBtn.classList.add("complete-btn");
-  completeBtn.type = "button";
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.textContent = "Eliminar";
-  deleteBtn.classList.add("delete-btn");
-  deleteBtn.type = "button";
-
-  taskContent.appendChild(checkbox);
-  taskContent.appendChild(span);
-
-  taskActions.appendChild(completeBtn);
-  taskActions.appendChild(deleteBtn);
-
-  li.appendChild(taskContent);
-  li.appendChild(taskActions);
-
-  checkbox.addEventListener("change", function () {
-    if (checkbox.checked) {
-      span.classList.add("completed");
-      if (!li.dataset.completed) {
-        tareasPendientes--;
-        li.dataset.completed = "true";
-      }
-    } else {
-      span.classList.remove("completed");
-      if (li.dataset.completed === "true") {
-        tareasPendientes++;
-        li.dataset.completed = "false";
-      }
-    }
-    actualizarContador();
+// Renderizar tareas
+function renderTasks() {
+  taskList.innerHTML = "";
+  
+  tasks.forEach(task => {
+    const li = document.createElement("li");
+    li.className = `task-item ${task.completed ? 'completed' : ''}`;
+    li.id = `task-${task.id}`;
+    
+    li.innerHTML = `
+      <div class="task-content">
+        <label class="checkbox-wrapper">
+          <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id})">
+          <span class="checkmark">
+            <span class="material-symbols-rounded">check</span>
+          </span>
+        </label>
+        <span class="task-text">${escapeHTML(task.text)}</span>
+      </div>
+      <div class="task-actions">
+        <button class="icon-btn delete-btn" onclick="deleteTask(${task.id})" aria-label="Eliminar tarea">
+          <span class="material-symbols-rounded">delete</span>
+        </button>
+      </div>
+    `;
+    
+    taskList.appendChild(li);
   });
-
-  completeBtn.addEventListener("click", function () {
-    checkbox.checked = !checkbox.checked;
-    checkbox.dispatchEvent(new Event("change"));
-  });
-
-  deleteBtn.addEventListener("click", function () {
-    if (li.dataset.completed !== "true") {
-      tareasPendientes--;
-    }
-    li.remove();
-    actualizarContador();
-  });
-
-  li.dataset.completed = "false";
-  taskList.appendChild(li);
-
-  tareasPendientes++;
-  actualizarContador();
+  
+  updateStats();
 }
 
-taskForm.addEventListener("submit", function (event) {
-  event.preventDefault();
+// Función auxiliar para escapar HTML y evitar XSS
+function escapeHTML(str) {
+  return str.replace(/[&<>'"]/g, 
+    tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[tag] || tag)
+  );
+}
 
-  const textoIngresado = taskInput.value.trim();
-
-  if (textoIngresado === "") {
-    mostrarError("No puedes agregar tareas vacías o con solo espacios.");
+// Manejador del formulario
+taskForm.addEventListener("submit", function (e) {
+  e.preventDefault();
+  
+  const text = taskInput.value.trim();
+  
+  if (!text) {
+    showError("Por favor, escribe una tarea válida.");
     return;
   }
-
-  limpiarError();
-  crearTarea(textoIngresado);
+  
+  const newTask = {
+    id: Date.now(),
+    text: text,
+    completed: false
+  };
+  
+  tasks.unshift(newTask); // Añadir al principio
+  saveTasks();
+  renderTasks();
+  
   taskInput.value = "";
   taskInput.focus();
 });
+
+// Event listener para limpiar completadas
+clearCompletedBtn.addEventListener("click", clearCompleted);
+
+// Funciones globales necesarias para los event handlers inline
+window.toggleTask = toggleTask;
+window.deleteTask = deleteTask;
+
+// Arrancar la app
+init();
